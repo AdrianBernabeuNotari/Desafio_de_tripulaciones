@@ -5,7 +5,7 @@ from typing import Literal
 # Librerías de LangChain y Pydantic
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 # Cargar entorno
 load_dotenv()
@@ -13,7 +13,7 @@ load_dotenv()
 # [CIBER]: Configuración del Modelo
 # Usamos 'gpt-4o' o 'gpt-3.5-turbo'. GPT-4 es más resistente a "Jailbreaks" (trampas lógicas).
 # Temperature=0 hace que el modelo sea determinista (menos creativo, más estricto).
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+llm = ChatOpenAI(model="gpt-4o", temperature=1)
 
 # ==========================================
 # 1. ESTRUCTURAS DE DATOS (OUTPUT PARSERS)
