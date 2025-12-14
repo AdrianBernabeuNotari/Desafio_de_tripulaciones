@@ -10,9 +10,9 @@ app = FastAPI(
 # endpoint para el chatbot
 @app.post("/api/chat")
 async def chat(mensaje: str):
-    inputs = {"mensaje": mensaje} # 1
+    inputs = {"mensaje_entrada": mensaje} # 1
     resultado = app_graph.invoke(inputs) # 2
-    return {"respuesta": resultado['final_response']} # 3
+    return {"respuesta": resultado['respuesta_final']} # 3
 
     # lo que tiramos aquí:
     # 1: metemos el mensaje del usuario
