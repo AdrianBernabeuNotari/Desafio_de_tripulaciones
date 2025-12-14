@@ -1,11 +1,19 @@
 from fastapi import FastAPI
-from app.graph import app_graph # Importas tu grafo ya compilado
+from app.graph import app_graph
 
-app = FastAPI()
+app = FastAPI(
+    title="Nombre de la app",
+    description="Descripción",
+    version="1.0.0"
+)
 
-@app.post("/chat")
+@app.post("/api/chat")
 async def chat(mensaje: str):
-    # Invocas al grafo
     inputs = {"mensaje": mensaje}
     resultado = app_graph.invoke(inputs)
     return {"respuesta": resultado['final_response']}
+
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "online", "system": "Versión 1.0.0"}
