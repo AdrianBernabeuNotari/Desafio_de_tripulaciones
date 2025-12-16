@@ -57,6 +57,7 @@ def nodo_redactor(state: GraphState):
     respuesta_chain = responder_chain.invoke({
         "history": state["mensajes"],
         "rol": state["perfil"]["rol"],
+        "riesgo": state["perfil"]["nivel_riesgo"],
         "contexto": state["contexto"],
         "mensaje": ultimo_mensaje_texto
     })
