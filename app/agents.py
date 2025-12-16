@@ -1,31 +1,24 @@
-import os
 from dotenv import load_dotenv
 from typing import Literal
-
-# Librerías de LangChain y Pydantic
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from pydantic import BaseModel, Field
 
 # Cargar entorno
 load_dotenv()
 
-# [CIBER]: Configuración del Modelo
-# Usamos 'gpt-4o' o 'gpt-3.5-turbo'. GPT-4 es más resistente a "Jailbreaks" (trampas lógicas).
-# Temperature=0 hace que el modelo sea determinista (menos creativo, más estricto).
-llm = ChatOpenAI(model="gpt-4o", temperature=1)
+# La temperatura inidica hasta que punto el modelo usa solo info del rag
+llm = ChatOpenAI(model="gpt-4o", temperature=0.25)
 
-# ==========================================
-# 1. ESTRUCTURAS DE DATOS (OUTPUT PARSERS)
-# ==========================================
+
 # [CIBER]: Definir clases Pydantic es una medida de seguridad.
 # Obliga al LLM a devolver datos que encajen en este molde.
 # Si el LLM intenta inyectar código malicioso fuera de este esquema, el programa fallará controladamente.
 
 class PerfilUsuario(BaseModel):
-    """Modelo para clasificar al usuario y el riesgo."""
-    rol: Literal["victima", "testigo", "agresor", "otro"] = Field(
-        ..., description="El rol que parece tener el usuario en la situación de bullying."
+
+    rol: Literal["victima", "protector", "agresor", "ayudante", "público", "observador", "otro"] = Field(
+        ..., description="El rol que parece tener el usuario en la situación de acoso escolar."
     )
     nivel_riesgo: Literal["bajo", "medio", "alto", "inminente"] = Field(
         ..., description="Nivel de urgencia. 'inminente' implica riesgo físico o suicidio."
@@ -34,21 +27,18 @@ class PerfilUsuario(BaseModel):
         ..., description="Un resumen de una frase de lo que está pasando para usar en la búsqueda."
     )
 
-# ==========================================
-# 2. AGENTE 1: EL PROFILER (CLASIFICADOR)
-# ==========================================
-# Este agente NO habla con el usuario. Solo analiza.
 
+# Agente 1: este es el que lee el mensaje del usuario y lo clasifica
 profiler_prompt = ChatPromptTemplate.from_messages([
     ("system", """
-    Eres un experto en psicología y seguridad escolar. Tu trabajo es analizar mensajes 
-    relacionados con bullying.
+    Eres un experto en psicología y seguridad escolar. Tu trabajo es analizar mensajes de alumnos que buscan apoyo, compañia y guía,
+    con sus posibles problemas, principalmente pero no solo con temas de acoso escolar.
     
     Tus objetivos:
-    1. Identificar si el usuario es la VÍCTIMA, un TESTIGO, o el AGRESOR.
+    1. Identificar si el perfil del usuario corresponde a una VÍCTIMA, OBSERVADOR, AGRESOR, PÚBLICO, AYUDANTE, PROTECTOR u otro.
     2. Detectar el nivel de riesgo. Si hay mención de armas, suicidio o daño físico inmediato, es 'inminente'.
     
-    [CIBER_RULE]: No inventes información. Cíñete estrictamente al texto del usuario.
+    [CIBER_RULE]: No inventes información. Cíñete al texto del usuario.
     """),
     ("human", "Mensaje del usuario: {mensaje}")
 ])
@@ -57,12 +47,7 @@ profiler_prompt = ChatPromptTemplate.from_messages([
 profiler_chain = profiler_prompt | llm.with_structured_output(PerfilUsuario)
 
 
-# ==========================================
-# 3. AGENTE 2: EL DOCUMENTALISTA (QUERY GEN)
-# ==========================================
-# Transforma el problema del usuario en una búsqueda para ChromaDB.
-# Ej: Usuario dice "Me pegan", Búsqueda -> "Protocolo agresión física colegio"
-
+# Agente 2: este es el que prepara la query para buscar la info en el rag
 query_prompt = ChatPromptTemplate.from_messages([
     ("system", """
     Eres un experto en buscar información en bases de datos corporativas sobre acoso escolar.
@@ -77,15 +62,11 @@ query_prompt = ChatPromptTemplate.from_messages([
 query_chain = query_prompt | llm
 
 
-# ==========================================
-# 4. AGENTE 3: EL ORIENTADOR (RESPONDER)
-# ==========================================
-# Este es el único que genera texto que leerá el usuario final.
-
+# Agente 3: este es el que genera la respuesta para el usuario
 responder_prompt = ChatPromptTemplate.from_messages([
     ("system", """
     Eres 'SafeBot', un asistente virtual escolar empático y seguro.
-    Tu misión es orientar al alumno basándote EXCLUSIVAMENTE en la información proporcionada (Contexto).
+    Tu misión es orientar al alumno basándote en la información proporcionada (Contexto).
     
     Instrucciones de Tono:
     - Si es VÍCTIMA: Sé cercano, valida sus sentimientos, no juzgues.
@@ -97,11 +78,14 @@ responder_prompt = ChatPromptTemplate.from_messages([
     - NO proporciones información médica ni legal fuera de los documentos adjuntos.
     - Si el contexto (documentos) está vacío, di que no tienes esa info específica y sugiere hablar con un tutor.
     """),
+
+    # Aquí se introduce el historial del chat
+    MessagesPlaceholder(variable_name="history"),
+
     ("human", """
     Mensaje original: {mensaje}
     Rol detectado: {rol}
-    Información de los protocolos (Contexto RAG): 
-    {contexto}
+    Información de los protocolos (Contexto RAG): {contexto}
     
     Respuesta:
     """)

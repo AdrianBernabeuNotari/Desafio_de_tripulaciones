@@ -34,7 +34,7 @@ def main():
         print("No se encontraron documentos. Abortando.")
         return
 
-    print(f"Se han cargado {len(documents)} documentos.")
+    print(f"Se han cargado {len(documents)} documentos.") # Núm. de páginas
 
     # División
     text_splitter = RecursiveCharacterTextSplitter(
