@@ -1,0 +1,15 @@
+# Librerías necesarias para correr el repo
+
+fastapi
+uvicorn
+python-dotenv
+langchain-community
+langchain-core
+langchain-openai
+langchain-text-splitters
+langchain-chroma
+langgraph
+pydantic
+pynacl
+ipython
+pypdf
