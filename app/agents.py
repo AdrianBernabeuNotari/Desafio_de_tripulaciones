@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 # La temperatura inidica hasta que punto el modelo usa solo info del rag
-llm = ChatOpenAI(model="gpt-4o", temperature=0.25)
+llm_deterministic = ChatOpenAI(model="gpt-4o", temperature=0)
+llm_creative = ChatOpenAI(model="gpt-4o", temperature=0.6)
 
 
 # [CIBER]: Definir clases Pydantic es una medida de seguridad.
@@ -44,7 +45,7 @@ profiler_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # Creamos la cadena usando .with_structured_output (Fuerza el JSON)
-profiler_chain = profiler_prompt | llm.with_structured_output(PerfilUsuario)
+profiler_chain = profiler_prompt | llm_deterministic.with_structured_output(PerfilUsuario)
 
 
 # Agente 2: este es el que prepara la query para buscar la info en el rag
@@ -59,7 +60,7 @@ query_prompt = ChatPromptTemplate.from_messages([
     ("human", "Rol: {rol}. Situación: {resumen}. Genera la query de búsqueda:")
 ])
 
-query_chain = query_prompt | llm
+query_chain = query_prompt | llm_deterministic
 
 
 # Agente 3: este es el que genera la respuesta para el usuario
@@ -91,4 +92,4 @@ responder_prompt = ChatPromptTemplate.from_messages([
     """)
 ])
 
-responder_chain = responder_prompt | llm
+responder_chain = responder_prompt | llm_creative
